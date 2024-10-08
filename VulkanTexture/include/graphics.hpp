@@ -491,6 +491,51 @@ private:
      * coordinates are mapped to the image, including filtering and addressing modes.
      */
     void createTextureSampler();
+// --------------------------------------------------------------------------------
+
+    /**
+     * @brief Creates a Vulkan image memory barrier for layout transitions.
+     *
+     * Sets up a `VkImageMemoryBarrier` structure for transitioning a Vulkan image from one layout to another.
+     * This helper function encapsulates common settings, allowing you to specify the source and destination
+     * image layouts, format, and image to transition. It simplifies the setup of image layout transitions by
+     * returning a pre-configured `VkImageMemoryBarrier` object that can be used in `vkCmdPipelineBarrier`.
+     *
+     * @param image The Vulkan image to transition.
+     * @param format The format of the image (e.g., VK_FORMAT_R8G8B8A8_SRGB).
+     * @param oldLayout The current layout of the image.
+     * @param newLayout The desired layout of the image after the transition.
+     * @return A configured `VkImageMemoryBarrier` for the specified transition.
+    */
+    VkImageMemoryBarrier createImageMemoryBarrier(VkImage image, VkFormat format, 
+                                                  VkImageLayout oldLayout, VkImageLayout newLayout);
+// --------------------------------------------------------------------------------
+
+    /**
+     * @brief Allocates a single-use Vulkan command buffer.
+     *
+     * This function allocates a primary command buffer from the command pool managed by the
+     * `CommandBufferManager`. The command buffer is intended for short-lived operations and is
+     * typically used for one-time commands such as buffer-to-image copies or layout transitions.
+     * 
+     * The caller is responsible for starting and ending the command buffer recording and freeing
+     * the command buffer after use.
+     *
+     * @return A Vulkan command buffer handle ready for recording.
+     */
+    VkCommandBuffer allocateCommandBuffer();
+// --------------------------------------------------------------------------------
+
+    /**
+     * @brief Submits a single-use command buffer and waits for execution to complete.
+     *
+     * This function is designed to submit a command buffer that performs a single, short-lived operation.
+     * After submission, it waits for the command to complete, making it suitable for one-time commands such as
+     * buffer-to-image copies or image layout transitions. The function frees the command buffer after execution.
+     *
+     * @param commandBuffer The command buffer to submit for execution.
+     */
+    void submitSingleTimeCommandBuffer(VkCommandBuffer commandBuffer);
 };
 // ================================================================================
 // ================================================================================ 
