@@ -130,6 +130,7 @@ private:
     std::unique_ptr<VulkanLogicalDevice> vulkanLogicalDevice;
     std::unique_ptr<SwapChain> swapChain;
     std::unique_ptr<CommandBufferManager> commandBufferManager;
+    std::unique_ptr<SamplerManager> samplerManager;
     std::unique_ptr<TextureManager> textureManager;
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<DescriptorManager> descriptorManager;

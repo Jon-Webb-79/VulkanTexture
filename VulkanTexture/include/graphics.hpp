@@ -21,6 +21,7 @@
 #include <array>
 #include <string>
 #include <cstddef>
+#include <unordered_map>
 
 #include "memory.hpp"
 #include "devices.hpp"
@@ -257,6 +258,72 @@ private:
 // ================================================================================
 
 /**
+ * @class SamplerManager
+ * @brief Manages the creation, retrieval, and destruction of Vulkan texture samplers.
+ *
+ * The SamplerManager class is responsible for managing Vulkan samplers. 
+ * It allows for the creation of reusable samplers based on unique keys, 
+ * making it efficient to share samplers across multiple textures that have similar sampling properties.
+ */
+class SamplerManager {
+public:
+
+    /**
+     * @brief Constructs a SamplerManager for managing Vulkan texture samplers.
+     *
+     * Initializes the SamplerManager with the Vulkan device and physical device handles needed
+     * for creating samplers.
+     * 
+     * @param device The Vulkan logical device handle used to create and manage samplers.
+     * @param physicalDevice The Vulkan physical device handle used for querying properties 
+     *        such as supported anisotropy levels.
+     */
+    SamplerManager(VkDevice device, VkPhysicalDevice physicalDevice);
+// --------------------------------------------------------------------------------
+
+    /**
+     * @brief Destructor for the SamplerManager class.
+     *
+     * Cleans up all Vulkan samplers created and managed by the SamplerManager.
+     * Each sampler in the manager is destroyed upon the SamplerManager's destruction.
+     */
+    ~SamplerManager();
+// --------------------------------------------------------------------------------
+    /**
+     * @brief Retrieves an existing sampler by key.
+     *
+     * Looks up the sampler associated with the specified key. If the sampler does not exist,
+     * it will throw an exception.
+     * 
+     * @param samplerKey A unique key identifying the desired sampler.
+     * @return The Vulkan sampler associated with the given key.
+     * @throws std::out_of_range if the sampler associated with the key does not exist.
+     */
+    VkSampler getSampler(const std::string& samplerKey) const;
+// --------------------------------------------------------------------------------
+    /**
+     * @brief Creates and stores a sampler with the specified key.
+     *
+     * Creates a new Vulkan sampler with commonly used sampling parameters and associates it
+     * with the specified key for future retrieval. The created sampler is stored in the 
+     * `samplers` map and can be reused across multiple textures.
+     * 
+     * @param samplerKey A unique key identifying the sampler for future retrieval.
+     * @return The Vulkan sampler created and stored with the specified key.
+     * @throws std::runtime_error if Vulkan fails to create the sampler.
+     */
+    VkSampler createSampler(const std::string& samplerKey);
+// ================================================================================
+private:
+
+    VkDevice device; /**< The Vulkan logical device handle used for sampler creation. */ 
+    VkPhysicalDevice physicalDevice; /**< The Vulkan physical device handle for querying properties. */ 
+    std::unordered_map<std::string, VkSampler> samplers;  /**< Map of samplers keyed by unique strings for reuse. */
+};
+// ================================================================================
+// ================================================================================ 
+
+/**
  * @class TextureManager
  * @brief Manages the creation, loading, and transition of textures in Vulkan.
  *
@@ -267,26 +334,35 @@ private:
  */
 class TextureManager {
 public:
-
     /**
-     * @brief Constructor for the TextureManager class.
+     * @brief Constructs a TextureManager to manage Vulkan textures and their resources.
      *
-     * Initializes the TextureManager with the necessary Vulkan objects and parameters to manage textures.
-     * The texture image is loaded from the provided file path and is prepared for use in Vulkan shaders.
-     *
-     * @param allocatorManager Reference to an AllocatorManager that manages Vulkan memory.
+     * Initializes the TextureManager with necessary Vulkan objects and parameters to manage texture images.
+     * The texture image is loaded from the specified file path, and the image view is created for shader access.
+     * The TextureManager also obtains a sampler from the SamplerManager using the specified sampler key.
+     * 
+     * @param allocatorManager Reference to an AllocatorManager responsible for managing Vulkan memory.
      * @param device The Vulkan logical device handle used for memory allocations and operations.
      * @param physicalDevice The Vulkan physical device handle used to query memory properties.
-     * @param commandBufferManager Reference to the CommandBufferManager to handle command buffer allocation.
+     * @param commandBufferManager Reference to the CommandBufferManager responsible for command buffer allocation.
      * @param graphicsQueue The Vulkan queue for submitting graphics commands.
      * @param imagePath Path to the texture image file to be loaded and used as a texture.
+     * @param samplerManager Reference to a SamplerManager that manages reusable Vulkan samplers.
+     * @param samplerKey The key used to identify the desired sampler from the SamplerManager. 
+     *        If no key is specified, the "default" sampler is used.
+     * 
+     * @throws std::invalid_argument if the imagePath is empty.
+     * @throws std::runtime_error if any Vulkan resource creation fails, such as loading the texture image,
+     *         creating the Vulkan image or image view, or retrieving the sampler.
      */
     TextureManager(AllocatorManager& allocatorManager,
                    VkDevice device,
                    VkPhysicalDevice physicalDevice,
                    CommandBufferManager& commandBufferManager,
                    VkQueue graphicsQueue,
-                   std::string imagePath);
+                   const std::string imagePath,
+                   SamplerManager& samplerManager,
+                   const std::string& samplerKey = "default");
 // --------------------------------------------------------------------------------
     
     /**
@@ -306,16 +382,6 @@ public:
      * @return The Vulkan image view for the texture.
      */
     VkImageView getTextureImageView() const { return textureImageView; }
-// --------------------------------------------------------------------------------
-
-    /**
-     * @brief Retrieves the texture sampler.
-     *
-     * Provides access to the Vulkan texture sampler used by shaders to sample the texture image.
-     *
-     * @return The Vulkan sampler for the texture.
-     */
-    VkSampler getTextureSampler() const { return textureSampler; }
 // --------------------------------------------------------------------------------
 
     /**
@@ -348,6 +414,7 @@ private:
     VmaAllocation textureImageMemory = VK_NULL_HANDLE ; /**< The memory backing the Vulkan texture image. */ 
     VkImageView textureImageView = VK_NULL_HANDLE;
     VkSampler textureSampler = VK_NULL_HANDLE;
+    //SamplerManager& samplerManager;
 // --------------------------------------------------------------------------------
 
     /**
@@ -482,15 +549,6 @@ private:
      * @return The created Vulkan image view.
      */
     VkImageView createImageView(VkImage image, VkFormat format);
-// --------------------------------------------------------------------------------
-
-    /**
-     * @brief Creates a texture sampler.
-     *
-     * Configures and creates a Vulkan sampler for the texture. The sampler specifies how texture 
-     * coordinates are mapped to the image, including filtering and addressing modes.
-     */
-    void createTextureSampler();
 // --------------------------------------------------------------------------------
 
     /**

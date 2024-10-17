@@ -221,31 +221,85 @@ void CommandBufferManager::createCommandPool(VkPhysicalDevice physicalDevice, Vk
 // ================================================================================
 // ================================================================================
 
+SamplerManager::SamplerManager(VkDevice device, VkPhysicalDevice physicalDevice)
+    : device(device), physicalDevice(physicalDevice) {}
+// --------------------------------------------------------------------------------
+
+SamplerManager::~SamplerManager() {
+    for (auto& sampler : samplers) {
+        vkDestroySampler(device, sampler.second, nullptr);
+    }
+}
+// --------------------------------------------------------------------------------
+
+VkSampler SamplerManager::getSampler(const std::string& samplerKey) const {
+    auto it = samplers.find(samplerKey);
+    if (it != samplers.end()) {
+        return it->second;
+    } else {
+        throw std::runtime_error("Sampler not found: " + samplerKey);
+    }
+}
+// --------------------------------------------------------------------------------
+
+VkSampler SamplerManager::createSampler(const std::string& samplerKey) {
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    VkSampler sampler;
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create texture sampler!");
+    }
+
+    samplers[samplerKey] = sampler;
+    return sampler;
+}
+// ================================================================================
+// ================================================================================ 
 
 TextureManager::TextureManager(AllocatorManager& allocatorManager,
                                VkDevice device,
                                VkPhysicalDevice physicalDevice,
                                CommandBufferManager& commandBufferManager,
                                VkQueue graphicsQueue,
-                               std::string image)
+                               const std::string image,
+                               SamplerManager& samplerManager,
+                               const std::string& samplerKey)
     : allocatorManager(allocatorManager),
       device(device),
       physicalDevice(physicalDevice),
       commandBufferManager(commandBufferManager),
       graphicsQueue(graphicsQueue),
+      //samplerManager(samplerManager),
       imagePath(image){
     createTextureImage();
     createTextureImageView();
-    createTextureSampler();
+    textureSampler = samplerManager.getSampler(samplerKey);
+    //createTextureSampler();
 }
 // --------------------------------------------------------------------------------
 
 
 TextureManager::~TextureManager() {
-    if (textureSampler != VK_NULL_HANDLE) {
-        vkDestroySampler(device, textureSampler, nullptr);
-        textureSampler = VK_NULL_HANDLE;
-    }
+    // if (textureSampler != VK_NULL_HANDLE) {
+    //     vkDestroySampler(device, textureSampler, nullptr);
+    //     textureSampler = VK_NULL_HANDLE;
+    // }
 
     if (textureImageView != VK_NULL_HANDLE) {
         vkDestroyImageView(device, textureImageView, nullptr);
@@ -487,29 +541,29 @@ VkImageView TextureManager::createImageView(VkImage image, VkFormat format) {
 }
 // --------------------------------------------------------------------------------
 
-void TextureManager::createTextureSampler() {
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create texture sampler!");
-    }
-}
+// void TextureManager::createTextureSampler() {
+//     VkPhysicalDeviceProperties properties{};
+//     vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+//
+//     VkSamplerCreateInfo samplerInfo{};
+//     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+//     samplerInfo.magFilter = VK_FILTER_LINEAR;
+//     samplerInfo.minFilter = VK_FILTER_LINEAR;
+//     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//     samplerInfo.anisotropyEnable = VK_TRUE;
+//     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+//     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+//     samplerInfo.unnormalizedCoordinates = VK_FALSE;
+//     samplerInfo.compareEnable = VK_FALSE;
+//     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+//     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+//
+//     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+//         throw std::runtime_error("failed to create texture sampler!");
+//     }
+// }
 // --------------------------------------------------------------------------------
 
 VkImageMemoryBarrier TextureManager::createImageMemoryBarrier(

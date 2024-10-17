@@ -155,13 +155,19 @@ VulkanApplication::VulkanApplication(GLFWwindow* window,
                                                                   indices,
                                                                   vulkanPhysicalDevice->getDevice(),
                                                                   vulkanInstanceCreator->getSurface());
+    samplerManager = std::make_unique<SamplerManager>(
+            vulkanLogicalDevice->getDevice(),
+            vulkanPhysicalDevice->getDevice()
+    );
+    samplerManager->createSampler("default");
     textureManager = std::make_unique<TextureManager>(
         *allocatorManager,                              // Dereference unique_ptr
         vulkanLogicalDevice->getDevice(),
         vulkanPhysicalDevice->getDevice(),
         *commandBufferManager,                          // Dereference unique_ptr
         vulkanLogicalDevice->getGraphicsQueue(),
-        "../../../data/texture.jpg"
+        "../../../data/texture.jpg",
+        *samplerManager
     );
     bufferManager = std::make_unique<BufferManager>(vertices,
                                                     indices,
@@ -171,7 +177,7 @@ VulkanApplication::VulkanApplication(GLFWwindow* window,
     descriptorManager = std::make_unique<DescriptorManager>(vulkanLogicalDevice->getDevice());
     descriptorManager->createDescriptorSets(bufferManager->getUniformBuffers(),
                                             textureManager->getTextureImageView(),
-                                            textureManager->getTextureSampler());
+                                            samplerManager->getSampler("default"));
     graphicsPipeline = std::make_unique<GraphicsPipeline>(vulkanLogicalDevice->getDevice(),
                                                           *swapChain.get(),
                                                           *commandBufferManager.get(),
@@ -220,6 +226,7 @@ void VulkanApplication::run() {
 void VulkanApplication::destroyResources() {
 
     commandBufferManager.reset();
+    samplerManager.reset();
     textureManager.reset();
     bufferManager.reset();
     descriptorManager.reset();
