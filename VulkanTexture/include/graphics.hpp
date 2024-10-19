@@ -319,6 +319,8 @@ private:
     VkDevice device; /**< The Vulkan logical device handle used for sampler creation. */ 
     VkPhysicalDevice physicalDevice; /**< The Vulkan physical device handle for querying properties. */ 
     std::unordered_map<std::string, VkSampler> samplers;  /**< Map of samplers keyed by unique strings for reuse. */
+
+    mutable std::mutex samplerMutex; /**< Mutex to synchronize access to the `samplers` map. */ 
 };
 // ================================================================================
 // ================================================================================ 

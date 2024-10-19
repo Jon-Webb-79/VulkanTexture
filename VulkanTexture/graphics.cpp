@@ -226,6 +226,7 @@ SamplerManager::SamplerManager(VkDevice device, VkPhysicalDevice physicalDevice)
 // --------------------------------------------------------------------------------
 
 SamplerManager::~SamplerManager() {
+    std::lock_guard<std::mutex> lock(samplerMutex);
     for (auto& sampler : samplers) {
         vkDestroySampler(device, sampler.second, nullptr);
     }
@@ -233,6 +234,7 @@ SamplerManager::~SamplerManager() {
 // --------------------------------------------------------------------------------
 
 VkSampler SamplerManager::getSampler(const std::string& samplerKey) const {
+    std::lock_guard<std::mutex> lock(samplerMutex);
     auto it = samplers.find(samplerKey);
     if (it != samplers.end()) {
         return it->second;
@@ -243,6 +245,7 @@ VkSampler SamplerManager::getSampler(const std::string& samplerKey) const {
 // --------------------------------------------------------------------------------
 
 VkSampler SamplerManager::createSampler(const std::string& samplerKey) {
+    std::lock_guard<std::mutex> lock(samplerMutex);
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -285,12 +288,10 @@ TextureManager::TextureManager(AllocatorManager& allocatorManager,
       physicalDevice(physicalDevice),
       commandBufferManager(commandBufferManager),
       graphicsQueue(graphicsQueue),
-      //samplerManager(samplerManager),
       imagePath(image){
     createTextureImage();
     createTextureImageView();
     textureSampler = samplerManager.getSampler(samplerKey);
-    //createTextureSampler();
 }
 // --------------------------------------------------------------------------------
 
