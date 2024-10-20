@@ -416,7 +416,8 @@ private:
     VmaAllocation textureImageMemory = VK_NULL_HANDLE ; /**< The memory backing the Vulkan texture image. */ 
     VkImageView textureImageView = VK_NULL_HANDLE;
     VkSampler textureSampler = VK_NULL_HANDLE;
-    //SamplerManager& samplerManager;
+
+    std::mutex textureMutex;
 // --------------------------------------------------------------------------------
 
     /**

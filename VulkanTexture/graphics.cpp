@@ -297,11 +297,7 @@ TextureManager::TextureManager(AllocatorManager& allocatorManager,
 
 
 TextureManager::~TextureManager() {
-    // if (textureSampler != VK_NULL_HANDLE) {
-    //     vkDestroySampler(device, textureSampler, nullptr);
-    //     textureSampler = VK_NULL_HANDLE;
-    // }
-
+    
     if (textureImageView != VK_NULL_HANDLE) {
         vkDestroyImageView(device, textureImageView, nullptr);
         textureImageView = VK_NULL_HANDLE;
@@ -313,9 +309,32 @@ TextureManager::~TextureManager() {
         textureImageMemory = VK_NULL_HANDLE;
     }
 }
+// --------------------------------------------------------------------------------
+
+void TextureManager::reloadTexture(const std::string& newImagePath) {
+    std::lock_guard<std::mutex> lock(textureMutex);  // Ensures no other thread can modify the texture during reload
+
+    // Safely release existing resources
+    if (textureImage != VK_NULL_HANDLE && textureImageMemory != VK_NULL_HANDLE) {
+        vmaDestroyImage(allocatorManager.getAllocator(), textureImage, textureImageMemory);
+        textureImage = VK_NULL_HANDLE;
+        textureImageMemory = VK_NULL_HANDLE;
+    }
+
+    if (textureImageView != VK_NULL_HANDLE) {
+        vkDestroyImageView(device, textureImageView, nullptr);
+        textureImageView = VK_NULL_HANDLE;
+    }
+
+    // Update image path and recreate texture
+    imagePath = newImagePath;
+    createTextureImage();
+    createTextureImageView();
+}
 // ================================================================================
 
 void TextureManager::createTextureImage() {
+    std::lock_guard<std::mutex> lock(textureMutex);
     if (textureImage != VK_NULL_HANDLE && textureImageMemory != VK_NULL_HANDLE) {
         return; // Resources already initialized, skip re-creation
     }
@@ -540,31 +559,6 @@ VkImageView TextureManager::createImageView(VkImage image, VkFormat format) {
 
     return imageView;
 }
-// --------------------------------------------------------------------------------
-
-// void TextureManager::createTextureSampler() {
-//     VkPhysicalDeviceProperties properties{};
-//     vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-//
-//     VkSamplerCreateInfo samplerInfo{};
-//     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-//     samplerInfo.magFilter = VK_FILTER_LINEAR;
-//     samplerInfo.minFilter = VK_FILTER_LINEAR;
-//     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-//     samplerInfo.anisotropyEnable = VK_TRUE;
-//     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-//     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-//     samplerInfo.unnormalizedCoordinates = VK_FALSE;
-//     samplerInfo.compareEnable = VK_FALSE;
-//     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-//     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-//
-//     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-//         throw std::runtime_error("failed to create texture sampler!");
-//     }
-// }
 // --------------------------------------------------------------------------------
 
 VkImageMemoryBarrier TextureManager::createImageMemoryBarrier(
