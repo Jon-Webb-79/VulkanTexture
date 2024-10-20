@@ -4,33 +4,42 @@ Vulkan Application
 
 This application implements an object-oriented approach to the 
 `Vulkan Tutorial <https://vulkan-tutorial.com/>`_ up to the section on 
-Uniform Buffer Objects (UBOs). It renders a rotating square at an angle 
-and allows the user to resize the window and adjust the zoom level dynamically.
+Textures. It features the rendering of a rotating textured square, 
+support for dynamic window resizing, and zoom level adjustments.
 
 .. image:: app.png
-   :alt: Screenshot of the application implementing Uniform Buffer Objects
+   :alt: Screenshot of the application implementing texture mapping
    :align: center
 
 Overview
 ########
 
 This repository serves as a foundational framework for developers who wish 
-to build Vulkan-based applications. It focuses on the basics covered in the 
-Vulkan Tutorial up to UBOs, providing an effective starting point for 
-projects that do not require advanced Vulkan features.
+to build Vulkan-based applications. It follows the Vulkan Tutorial up to 
+the point where texture mapping is introduced, providing an effective 
+starting point for projects requiring texture support.
 
 **Current Features:**
 
-- Implements Uniform Buffer Objects for dynamic transformation of vertices.
-- Basic rendering of a rotating square with support for window resizing and 
-  zoom controls.
+- **Texture Mapping:** Implements texture loading and sampling using 
+  Vulkan's combined image samplers.
+- **Uniform Buffer Objects (UBOs):** Supports dynamic updates to transformation 
+  matrices, allowing the manipulation of view, model, and projection matrices 
+  in real-time.
+- **Dynamic Rendering:** Renders a rotating textured square and allows for 
+  dynamic window resizing and zooming.
+  
+**Additional Features:**
+
+- **Vulkan Memory Management:** Utilizes Vulkan Memory Allocator (VMA) for 
+  efficient memory handling.
+- **Command Buffers and Synchronization:** Leverages single-use command buffers 
+  for texture uploads and transition operations, ensuring optimal GPU performance.
 
 **Limitations:**
 
-- Does not support texture mapping, depth buffering, mipmaps, or other 
-  advanced Vulkan features.
-- No implementation for multi-threaded rendering or additional Vulkan 
-  capabilities beyond UBOs.
+- This version does not implement depth buffering, mipmaps, or multi-threaded 
+  rendering.
 
 **UBO Functionality Enabled:**
 
